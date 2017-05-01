@@ -1,0 +1,303 @@
+电力系统底层架构
+1、建立web工程
+   创建数据库
+   导入向对应的jar包
+2、 持久层：
+    （1）在cn.itcast.elec.domain中创建持久化类ElecText
+	    @SuppressWarnings("serial")
+		public class ElecText implements java.io.Serializable {
+			private String textID;
+			private String textName;
+			private Date textDate;
+			private String textRemark;
+			
+			public String getTextID() {
+				return textID;
+			}
+			public void setTextID(String textID) {
+				this.textID = textID;
+			}
+			public String getTextName() {
+				return textName;
+			}
+			public void setTextName(String textName) {
+				this.textName = textName;
+			}
+			public Date getTextDate() {
+				return textDate;
+			}
+			public void setTextDate(Date textDate) {
+				this.textDate = textDate;
+			}
+			public String getTextRemark() {
+				return textRemark;
+			}
+			public void setTextRemark(String textRemark) {
+				this.textRemark = textRemark;
+			}
+		}
+	(2)在cn.itcast.elec.domain中创建ElecText.hbm.xml
+	    <?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE hibernate-mapping PUBLIC 
+		    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+		    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+		<hibernate-mapping>
+			<class name="cn.itcast.elec.domain.ElecText" table="Elec_Text">
+				<id name="textID" type="string">
+					<column name="textID" sql-type="VARCHAR(50)"></column>
+					<generator class="uuid"></generator>
+				</id>
+				<property name="textName" type="string">
+					<column name="textName" sql-type="VARCHAR(50)"></column>
+				</property>
+				<property name="textDate" type="date">
+					<column name="textDate" length="50"></column>
+				</property>
+				<property name="textRemark" type="string">
+					<column name="textRemark" sql-type="VARCHAR(500)"></column>
+				</property>
+			</class>
+		</hibernate-mapping>
+   （3）在src的目录下，创建hibernate.cfg.xml（连接数据库信息）
+        <?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE hibernate-configuration PUBLIC
+			"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+			"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+		<hibernate-configuration>
+			<session-factory>
+				<!-- 基本信息 -->
+				<property name="hibernate.connection.driver_class">com.mysql.jdbc.Driver</property>
+				<property name="hibernate.connection.url">jdbc:mysql://localhost:3306/itcast0906elec?useUnicode=true&amp;characterEncoding=utf8</property>
+				<property name="hibernate.connection.username">root</property>
+				<property name="hibernate.connection.password">root</property>
+				<!-- 使事务自动提交 -->
+				<!--<property name="hibernate.connection.autocommit">true</property>-->
+				<!-- 配置 -->
+				<property name="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</property>
+				<property name="hibernate.hbm2ddl.auto">update</property>
+				<property name="hibernate.show_sql">true</property>
+				
+				<!-- 添加映射的hbm.xml -->
+				<mapping resource="cn/itcast/elec/domain/ElecText.hbm.xml"/>
+			</session-factory>
+		</hibernate-configuration>
+	(4)测试在junit包下TestHibernate
+	    public class TestHibernate {
+			@Test
+			public void testSave(){
+				Configuration configuration = new Configuration();
+				//加载类路径的hibernate.cfg.xml
+				configuration.configure();
+				//调用sessionFactory
+				SessionFactory sf = configuration.buildSessionFactory();
+				//打开session
+				Session s = sf.openSession();
+				//开启事务
+				Transaction tr = s.beginTransaction();
+				//保存ElecText
+				ElecText elecText = new ElecText();
+				elecText.setTextName("测试Hibernate名称");
+				elecText.setTextDate(new Date());
+				elecText.setTextRemark("测试Hibernate备注");
+				s.save(elecText);
+				//事务提交
+				tr.commit();
+				//关闭session
+				s.close();
+				
+			}
+		}
+	
+3、DAO层
+   (1)在cn.itcast.elec.dao中创建对应的业务接口	IElecTextDao
+      
+		public interface IElecTextDao extends ICommonDao<ElecText> {
+			public static final String SERVICE_NAME = "cn.itcast.elec.dao.impl.ElecTextDaoImpl";
+		}	  
+   （2）在cn.itcast.elec.dao.impl中创建对应业务接口的实现类ElecTextDaoImpl
+        @Repository(IElecTextDao.SERVICE_NAME)
+		public class ElecTextDaoImpl extends CommonDaoImpl<ElecText> implements IElecTextDao {
+			
+		}
+    （3）在cn.itcast.elec.dao中创建对应的公用接口	ICommonDao
+        public interface ICommonDao<T> {
+			void save(T entity);
+		}
+    （4）在cn.itcast.elec.dao.impl中创建对应公用接口的实现类CommonDaoImpl，并注入sessionFactory给hibernateTemplate
+	    public class CommonDaoImpl<T> extends HibernateDaoSupport implements ICommonDao<T> {
+			/**
+			 *  <bean id="hibernateTemplate" class="org.springframework.orm.hibernate3.HibernateTemplate">
+					<property name="sessionFactory" ref="sessionFactory"></property>
+				</bean>
+			 */
+			@Resource(name="sessionFactory")
+			public final void setSessionFactoryDi(SessionFactory sessionFactory) {
+				super.setSessionFactory(sessionFactory);
+			}
+			
+			public void save(T entity) {
+				this.getHibernateTemplate().save(entity);
+			}
+		}
+	（5）在src的目录下创建beans.xml（spring容器）
+	    <?xml version="1.0" encoding="UTF-8"?>
+		<beans  xmlns="http://www.springframework.org/schema/beans"
+		        xmlns:context="http://www.springframework.org/schema/context"
+		        xmlns:aop="http://www.springframework.org/schema/aop"
+		        xmlns:tx="http://www.springframework.org/schema/tx"
+				xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				xsi:schemaLocation="http://www.springframework.org/schema/beans 
+				                    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+				                    http://www.springframework.org/schema/context 
+				                    http://www.springframework.org/schema/context/spring-context-3.0.xsd
+				                    http://www.springframework.org/schema/tx 
+				                    http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+				                    http://www.springframework.org/schema/aop 
+				                    http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+		<!-- 1、注解的自动扫描，表示组件（如：@controler，@Service，@Repository，@Resource等）的扫描 --> 
+		<context:component-scan base-package="cn.itcast.elec"></context:component-scan>
+		<!-- 2、？ -->
+		<!-- 3、创建由spring提供的sessionFactory，这是spring整合hibernate的核心 -->
+		<bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+			<property name="configLocation">
+				<value>
+					classpath:hibernate.cfg.xml
+				</value>
+			</property>
+		</bean>
+		<!--4、创建事务管理器，由spring负责创建  -->
+		<bean id="txManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+			<property name="sessionFactory" ref="sessionFactory"></property>
+		</bean>
+		<!-- 5、使用注解的形式管理事务 -->
+		<tx:annotation-driven transaction-manager="txManager"/>
+		</beans>
+    (6)测试在junit包下
+       public class TestDao {
+			@Test
+			public void testSaveElecText(){
+				//加载类路径下的beans.xml
+				ApplicationContext ac = new ClassPathXmlApplicationContext("beans.xml");
+				//获取spring容器中的bean的id节点
+				IElecTextDao elecTextDao = (IElecTextDao) ac.getBean(IElecTextDao.SERVICE_NAME);
+				//保存
+				ElecText elecText = new ElecText();
+				elecText.setTextName("测试DAO名称");
+				elecText.setTextDate(new Date());
+				elecText.setTextRemark("测试DAO备注");
+				elecTextDao.save(elecText);
+			}
+		}
+4、业务层
+   （1）在cn.itcast.elec.service中创建接口	IElecTextService
+		public interface IElecTextService {
+			public static final String SERVICE_NAME = "cn.itcast.elec.service.impl.ElecTextServiceImpl";
+			void saveElecText(ElecText elecText);
+		}
+    (2)在cn.itcast.elec.service.impl中创建实现类ElecTextServiceImpl，在业务层要写入事务控制
+        @Service(IElecTextService.SERVICE_NAME)
+		@Transactional(readOnly=true)
+		public class ElecTextServiceImpl implements IElecTextService {
+		
+			@Resource(name=IElecTextDao.SERVICE_NAME)
+			private IElecTextDao elecTextDao; 
+			
+			@Transactional(isolation=Isolation.DEFAULT,propagation=Propagation.REQUIRED,readOnly=false)
+			public void saveElecText(ElecText elecText) {
+				elecTextDao.save(elecText);
+			}
+		
+		}
+	（3）测试，在junit包下TextService测试
+	    public class TestService {
+			@Test
+			public void testSaveElecText(){
+				//加载类路径下的beans.xml
+				ApplicationContext ac = new ClassPathXmlApplicationContext("beans.xml");
+				//获取spring容器中的bean的id节点
+				IElecTextService elecTextService = (IElecTextService) ac.getBean(IElecTextService.SERVICE_NAME);
+				//保存
+				ElecText elecText = new ElecText();
+				elecText.setTextName("测试Service名称");
+				elecText.setTextDate(new Date());
+				elecText.setTextRemark("测试Service备注");
+				elecTextService.saveElecText(elecText);
+			}
+		}
+5、控制层
+     (1)在cn.itcast.elec.web.action中创建ElecTextAction，使用模型驱动
+	        @Controller("elecTextAction")
+			@Scope(value="prototype")
+			@SuppressWarnings("serial")
+			public class ElecTextAction extends BaseAction implements ModelDriven<ElecText> {
+			
+				private ElecText elecText = new ElecText();
+				
+				@Resource(name=IElecTextService.SERVICE_NAME)
+				private IElecTextService elecTextService;
+				
+				public ElecText getModel() {
+					return elecText;
+				}
+			
+				public String save(){
+					elecTextService.saveElecText(elecText);
+					System.out.println(request.getParameter("textDate"));
+					return "success";
+				}
+			}
+	 （2）在cn.itcast.elec.web.action中创建BaseAction，用于获取request和response
+	        @SuppressWarnings("serial")
+			public class BaseAction extends ActionSupport implements ServletRequestAware,ServletResponseAware {
+				
+				protected HttpServletRequest request = null;
+				protected HttpServletResponse response = null;
+			
+				public void setServletRequest(HttpServletRequest req) {
+					this.request = req;
+				}
+			
+				public void setServletResponse(HttpServletResponse res) {
+					this.response = res;
+				}
+			
+			}
+	 （3）在src的目录下，创建struts.xml文件
+	        <?xml version="1.0" encoding="UTF-8"?>
+			<!DOCTYPE struts PUBLIC
+				"-//Apache Software Foundation//DTD Struts Configuration 2.1.7//EN"
+				"http://struts.apache.org/dtds/struts-2.1.7.dtd">
+			<struts>
+				<!-- 修改访问链接的后缀名 -->
+				<constant name="struts.action.extension" value="do"></constant>
+				<!-- 设置开发模式，开发时输出更多的错误信息 -->
+				<constant name="struts.devMode" value="true"></constant>
+				<!-- 修改ui主题为简单主题 -->
+				<constant name="struts.ui.theme" value="simple"></constant>
+				<package name="system" namespace="/system" extends="struts-default">
+					<action name="elecTextAction_*" class="elecTextAction" method="{1}">
+						<result name="success">/system/textAdd.jsp</result>
+					</action>
+				</package>
+			</struts>
+	  (4)在web.xml中配置：添加：
+	      <!-- 使用struts整合spring，web服务器启动时，需要加载beans.xml -->
+			  <context-param>
+			  	<param-name>contextConfigLocation</param-name>
+			  	<param-value>
+			  		classpath:beans.xml
+			  	</param-value>
+			  </context-param>
+			  <listener>
+			  	<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+			  </listener>
+			  <filter>
+			  	<filter-name>struts2</filter-name>
+			  	<filter-class>org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter</filter-class>
+			  </filter>
+			  <filter-mapping>
+			  	<filter-name>struts2</filter-name>
+			  	<url-pattern>/*</url-pattern>
+			  </filter-mapping>
+	 （5）导入对应css，script，images，jsp页面
+	 （6）整体测试

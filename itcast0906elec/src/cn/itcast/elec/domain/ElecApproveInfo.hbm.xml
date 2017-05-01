@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC 
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="cn.itcast.elec.domain.ElecApproveInfo" table="Elec_ApproveInfo">
+		<id name="approveID" type="long">
+			<column name="approveID"></column>
+			<generator class="increment"></generator>
+		</id>
+		<property name="applicationID" type="long">
+			<column name="applicationID"></column>
+		</property>
+		<property name="comment" type="string">
+			<column name="comment"></column>
+		</property>
+		<property name="approval" type="boolean">
+			<column name="approval"></column>
+		</property>
+		<property name="approveUserID" type="string">
+			<column name="approveUserID"></column>
+		</property>
+		<property name="approveUserName" type="string">
+			<column name="approveUserName"></column>
+		</property>
+		<property name="approveTime" type="timestamp">
+			<column name="approveTime"></column>
+		</property>
+	</class>
+</hibernate-mapping>
+

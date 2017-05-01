@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC 
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="cn.itcast.elec.domain.ElecApplicationTemplate" table="Elec_Application_Template">
+		<id name="id" type="long">
+			<column name="id"></column>
+			<generator class="increment"></generator>
+		</id>
+		<property name="name" type="string">
+			<column name="name"></column>
+		</property>
+		<property name="processDefinitionKey" type="string">
+			<column name="processDefinitionKey"></column>
+		</property>
+		<property name="path" type="string">
+			<column name="path"></column>
+		</property>
+	</class>
+</hibernate-mapping>
+
